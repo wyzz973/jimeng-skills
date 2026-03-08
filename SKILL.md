@@ -63,7 +63,7 @@ chmod 600 ~/.jimeng/config.json
 
 仔细检查用户消息，查找以下任一形式的文件引用：
 
-1. **本地文件路径**：如 `/tmp/openclaw-feishu-media/xxx.jpg`、`/var/folders/.../xxx.png`、`~/.openclaw/media/xxx.jpg`
+1. **本地文件路径**：如 `~/.openclaw/media/inbound/xxx.jpg`、`/tmp/openclaw-feishu-media/xxx.jpg`
 2. **URL 链接**：如 `https://...` 开头的图片/音频/视频地址
 3. **附件标记**：如 `[Image]`、`[Audio]`、`[Video]` 等标记，可能包含文件路径或描述
 4. **用户在对话中粘贴的文件路径**
@@ -72,8 +72,10 @@ chmod 600 ~/.jimeng/config.json
 
 **主动搜索 OpenClaw 媒体目录中最近的文件：**
 
+飞书发来的文件存储在 `~/.openclaw/media/inbound/` 目录中，文件名为 UUID 格式（如 `47e7be33-xxx.jpg`）。
+
 ```bash
-# 搜索最近 10 分钟内的图片文件（会搜索 /tmp/openclaw-feishu-media、~/.openclaw/media 等目录）
+# 搜索最近 10 分钟内的图片文件（优先搜索 ~/.openclaw/media/inbound/）
 python3 {baseDir}/scripts/jimeng_helper.py find-media --type image --minutes 10
 
 # 搜索最近的音频文件（用于数字人功能）
@@ -86,6 +88,11 @@ python3 {baseDir}/scripts/jimeng_helper.py find-media --type video --minutes 10
 返回 JSON 数组，包含 path、modified、size_kb。
 
 如果找到了文件，**必须展示给用户确认**："我找到了以下最近的文件，请确认是否使用这个文件：[文件路径]（大小：xx KB，修改时间：xx）"
+
+**也可以直接用 ls 检查：**
+```bash
+ls -lt ~/.openclaw/media/inbound/ | head -5
+```
 
 ### 第三步：如果仍然没有找到文件
 

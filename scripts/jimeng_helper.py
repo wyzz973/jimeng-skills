@@ -91,10 +91,9 @@ def find_recent_media(media_type="image", minutes=10):
     extensions = ext_map.get(media_type, ext_map["image"])
 
     search_dirs = [
-        "/tmp/openclaw-feishu-media",
+        os.path.expanduser("~/.openclaw/media/inbound"),
         os.path.expanduser("~/.openclaw/media"),
-        os.path.expanduser("~/.openclaw/media/feishu"),
-        "/tmp",
+        "/tmp/openclaw-feishu-media",
         os.path.expanduser("~/jimeng-images/input"),
     ]
 
