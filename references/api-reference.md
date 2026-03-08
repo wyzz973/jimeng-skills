@@ -43,11 +43,13 @@
 
 ## 图生视频
 
+⚠️ 图片参数必须用 `binary_data_base64`，不是 `image_base64`！
+
 ```json
 {
   "req_key": "jimeng_i2v_first_v30",
   "prompt": "描述",
-  "image_base64": ["BASE64_STRING"],
+  "binary_data_base64": ["BASE64_STRING"],
   "seed": -1,
   "frames": 121
 }
@@ -61,7 +63,7 @@
 
 提交：
 ```json
-{"req_key": "jimeng_image2image_dream_inpaint", "prompt": "编辑描述", "image_base64": ["BASE64"]}
+{"req_key": "jimeng_image2image_dream_inpaint", "prompt": "编辑描述", "binary_data_base64": ["BASE64"]}
 ```
 
 查询时附加：
@@ -74,7 +76,7 @@
 ## 智能超清
 
 ```json
-{"req_key": "jimeng_high_aes_general_v21_L", "image_base64": ["BASE64"]}
+{"req_key": "jimeng_high_aes_general_v21_L", "binary_data_base64": ["BASE64"]}
 ```
 
 结果字段：`data.image_urls`
@@ -98,8 +100,10 @@
 
 ## 动作模仿 2.0
 
+⚠️ 视频参数必须用 `binary_data_base64`（数组），不是 `video_base64`！
+
 ```json
-{"req_key": "jimeng_motion_imitation_v2", "image_base64": "BASE64", "video_base64": "BASE64"}
+{"req_key": "jimeng_motion_imitation_v2", "image_base64": "BASE64", "binary_data_base64": ["VIDEO_BASE64"]}
 ```
 
 - 图片：JPEG/PNG, 480x480~1920x1080, <4.7MB
@@ -108,7 +112,11 @@
 
 ## 通用说明
 
-- base64 方式传文件：用 `image_base64` / `audio_base64` / `video_base64` 替代对应的 `_url` / `_urls` 参数
+- **⚠️ 不同 API 的文件参数名不同，必须严格照用！**
+  - 图生视频/Inpainting/智能超清：图片用 `binary_data_base64`（数组）
+  - 动作模仿：图片用 `image_base64`（字符串），视频用 `binary_data_base64`（数组）
+  - 数字人：图片用 `image_base64`（字符串），音频用 `audio_base64`（字符串）
+  - 用错参数名 API 会静默忽略文件数据！
 - 提交接口：`cv_sync2async_submit_task(form)` 返回 `task_id`
 - 查询接口：`cv_sync2async_get_result(form)` 返回结果
 - 同步接口（仅主体识别）：`cv_submit_task(form)`

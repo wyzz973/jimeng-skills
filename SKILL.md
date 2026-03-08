@@ -1,7 +1,7 @@
 ---
 name: jimeng-ai
 description: 即梦 AI 多模态生成。当用户提到"生成视频"、"生成图片"、"文生视频"、"文生图"、"图生视频"、"即梦"、"jimeng"、"AI视频"、"AI图片"、"数字人"、"动作模仿"、"图片超清"、"图片编辑"、"inpainting"、"超分辨率"、"画一张"、"做个视频"、"口播"时使用。通过火山引擎即梦 AI API 生成图片和视频。
-version: 2.2.0
+version: 2.3.0
 metadata:
   openclaw:
     requires:
@@ -55,6 +55,11 @@ chmod 600 ~/.jimeng/config.json
 1. **严禁将 base64 字符串通过命令行参数传递！** base64 字符串非常长（100KB+），放在 shell 命令参数里会被截断/损坏，导致 API 收到损坏的图片。所有需要传文件的 API 调用，**必须使用 inline Python 脚本**（`python3 << 'PYEOF'`），在脚本内部读取文件并 base64 编码后直接调用 SDK。
 2. **严禁跳过提示词优化步骤！** 必须先 AI 优化提示词，展示给用户确认后再提交任务。
 3. **严禁在没有获取到文件的情况下调用需要文件的 API！** 如果找不到用户的文件，必须停下来要求用户重新发送。
+4. **严禁混淆 API 参数名！** 不同的即梦 API 使用不同的参数名传图片/视频：
+   - **图生视频**必须用 `binary_data_base64`（不是 `image_base64`！）
+   - **动作模仿**的视频必须用 `binary_data_base64`（不是 `video_base64`！）
+   - **数字人**用 `image_base64`（字符串，不是数组！）
+   - 详见各功能代码示例中的参数名，**必须严格照抄参数名**，否则 API 会静默忽略你的文件！
 
 ---
 
@@ -187,10 +192,11 @@ vs.set_sk(config["secret_key"])
 with open("此处替换为图片的完整本地路径", "rb") as f:
     image_b64 = base64.b64encode(f.read()).decode("utf-8")
 
+# ⚠️ 图生视频必须用 binary_data_base64，不是 image_base64！
 form = {
     "req_key": "jimeng_i2v_first_v30",  # 720p；1080p 用 jimeng_i2v_first_v30_1080
     "prompt": "此处替换为优化后的提示词",
-    "image_base64": [image_b64],
+    "binary_data_base64": [image_b64],  # 注意：必须是 binary_data_base64，不是 image_base64！
     "seed": -1,
     "frames": 121  # 121=5秒, 241=10秒
 }
@@ -236,7 +242,7 @@ with open("此处替换为图片的完整本地路径", "rb") as f:
 form = {
     "req_key": "jimeng_image2image_dream_inpaint",
     "prompt": "此处替换为编辑描述",
-    "image_base64": [image_b64]
+    "binary_data_base64": [image_b64]  # 注意：用 binary_data_base64
 }
 resp = vs.cv_sync2async_submit_task(form)
 print(json.dumps(resp, ensure_ascii=False, indent=2))
@@ -293,7 +299,7 @@ with open("此处替换为图片的完整本地路径", "rb") as f:
 
 form = {
     "req_key": "jimeng_high_aes_general_v21_L",
-    "image_base64": [image_b64]
+    "binary_data_base64": [image_b64]  # 注意：用 binary_data_base64
 }
 resp = vs.cv_sync2async_submit_task(form)
 print(json.dumps(resp, ensure_ascii=False, indent=2))
@@ -393,10 +399,11 @@ with open("此处替换为图片路径", "rb") as f:
 with open("此处替换为视频路径", "rb") as f:
     video_b64 = base64.b64encode(f.read()).decode("utf-8")
 
+# 动作模仿：图片用 image_base64（字符串），视频用 binary_data_base64（数组）
 form = {
     "req_key": "jimeng_motion_imitation_v2",
     "image_base64": image_b64,
-    "video_base64": video_b64
+    "binary_data_base64": [video_b64]  # 注意：视频用 binary_data_base64，不是 video_base64！
 }
 resp = vs.cv_sync2async_submit_task(form)
 print(json.dumps(resp, ensure_ascii=False, indent=2))
