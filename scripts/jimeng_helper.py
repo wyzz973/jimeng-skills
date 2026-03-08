@@ -80,6 +80,48 @@ def save_input_file(url, ext="jpg"):
     return filepath
 
 
+def find_recent_media(media_type="image", minutes=10):
+    """搜索 OpenClaw 媒体目录中最近的文件"""
+    import glob
+    ext_map = {
+        "image": ["*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.bmp"],
+        "audio": ["*.mp3", "*.wav", "*.m4a", "*.ogg", "*.flac", "*.aac"],
+        "video": ["*.mp4", "*.mov", "*.webm", "*.avi", "*.mkv"],
+    }
+    extensions = ext_map.get(media_type, ext_map["image"])
+
+    search_dirs = [
+        "/tmp/openclaw-feishu-media",
+        os.path.expanduser("~/.openclaw/media"),
+        os.path.expanduser("~/.openclaw/media/feishu"),
+        "/tmp",
+        os.path.expanduser("~/jimeng-images/input"),
+    ]
+
+    cutoff = time.time() - minutes * 60
+    found = []
+
+    for d in search_dirs:
+        if not os.path.isdir(d):
+            continue
+        for ext in extensions:
+            for f in glob.glob(os.path.join(d, "**", ext), recursive=True):
+                try:
+                    mtime = os.path.getmtime(f)
+                    if mtime >= cutoff:
+                        size_kb = os.path.getsize(f) / 1024
+                        found.append({
+                            "path": f,
+                            "modified": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime)),
+                            "size_kb": round(size_kb, 1),
+                        })
+                except OSError:
+                    continue
+
+    found.sort(key=lambda x: x["modified"], reverse=True)
+    print(json.dumps(found[:10], ensure_ascii=False, indent=2))
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -110,6 +152,10 @@ if __name__ == "__main__":
     p_save.add_argument("--url", required=True)
     p_save.add_argument("--ext", default="jpg")
 
+    p_find = sub.add_parser("find-media")
+    p_find.add_argument("--type", default="image", choices=["image", "audio", "video"])
+    p_find.add_argument("--minutes", type=int, default=10)
+
     args = parser.parse_args()
 
     if args.cmd == "submit":
@@ -124,5 +170,7 @@ if __name__ == "__main__":
         print(read_file_base64(args.file))
     elif args.cmd == "save-url":
         save_input_file(args.url, args.ext)
+    elif args.cmd == "find-media":
+        find_recent_media(args.type, args.minutes)
     else:
         parser.print_help()
