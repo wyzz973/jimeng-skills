@@ -19,6 +19,36 @@ version: 2.0.0
    pip install volcengine requests -q 2>/dev/null
    ```
 
+## 飞书图片/文件处理（重要）
+
+本插件通过飞书 OpenClaw 使用。当用户在飞书对话中发送图片、音频或视频文件时，需要先将文件保存到本地，然后通过 **base64 编码** 传给即梦 AI API。
+
+### 处理流程
+
+1. **识别用户发送的文件**：检查对话中是否有图片/音频/视频（可能是本地路径或 URL）
+2. **保存到本地**：
+   ```bash
+   mkdir -p ~/jimeng-images/input
+   ```
+   - 如果是本地路径，直接使用
+   - 如果是 URL，下载到 `~/jimeng-images/input/`
+3. **base64 编码后传入 API**：
+   ```python
+   import base64
+   with open(local_path, "rb") as f:
+       file_base64 = base64.b64encode(f.read()).decode("utf-8")
+   # 传入 form 时使用 image_base64 / audio_base64 / video_base64 代替 image_urls / audio_url / video_url
+   ```
+
+### 参数映射
+
+| 原参数（URL 方式） | 替代参数（base64 方式） |
+|-------------------|----------------------|
+| `image_urls: ["https://..."]` | `image_base64: [base64_str]` |
+| `image_url: "https://..."` | `image_base64: base64_str` |
+| `audio_url: "https://..."` | `audio_base64: base64_str` |
+| `video_url: "https://..."` | `video_base64: base64_str` |
+
 ## 功能识别
 
 根据用户意图判断调用哪个功能：
@@ -109,20 +139,23 @@ resp = vs.cv_sync2async_get_result(form)
 "图片转视频"、"图生视频"、"这张图做成视频"
 
 ### 流程
-1. 获取用户上传的图片（需要图片 URL，可让用户提供 URL 或本地路径后上传）
+1. 获取用户在飞书发送的图片 → 保存到本地 → base64 编码
 2. 获取用户描述 → AI 优化提示词
 3. 询问：分辨率(720p/1080p)、时长(5s/10s)
 4. 提交任务 → 轮询结果 → 下载视频
 
 ### API 参数
 
-**首帧图生视频：**
+**首帧图生视频（base64 方式）：**
 ```python
+with open(local_image_path, "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
 form = {
     "req_key": "jimeng_i2v_first_v30",        # 720p
     # "req_key": "jimeng_i2v_first_v30_1080",  # 1080p
     "prompt": "优化后的提示词",
-    "image_urls": ["https://图片URL"],
+    "image_base64": [image_base64],
     "seed": -1,
     "frames": 121  # 121=5秒, 241=10秒
 }
@@ -134,7 +167,7 @@ resp = vs.cv_sync2async_submit_task(form)
 form = {
     "req_key": "jimeng_i2v_recamera_v30",
     "prompt": "提示词",
-    "image_urls": ["https://图片URL"],
+    "image_base64": [image_base64],
     "template_id": "hitchcock_dolly_in",  # 运镜模板
     "camera_strength": "medium"  # weak/medium/strong
 }
@@ -148,17 +181,20 @@ form = {
 "编辑图片"、"修改图片"、"inpainting"、"图片局部修改"
 
 ### 流程
-1. 获取用户上传的原图 URL
+1. 获取用户在飞书发送的原图 → 保存到本地 → base64 编码
 2. 获取用户的编辑需求描述
 3. 提交任务 → 查询结果 → 下载编辑后的图片
 
 ### API 参数
 ```python
-# 提交编辑任务
+# 提交编辑任务（base64 方式）
+with open(local_image_path, "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
 form = {
     "req_key": "jimeng_image2image_dream_inpaint",
     "prompt": "编辑描述，如：背景换成演唱会现场",
-    "image_urls": ["https://原图URL"]
+    "image_base64": [image_base64]
 }
 resp = vs.cv_sync2async_submit_task(form)
 
@@ -183,14 +219,17 @@ resp = vs.cv_sync2async_get_result(form)
 "图片超清"、"图片放大"、"超分辨率"、"提升画质"、"图片增强"
 
 ### 流程
-1. 获取用户上传的图片 URL
+1. 获取用户在飞书发送的图片 → 保存到本地 → base64 编码
 2. 提交超清任务 → 轮询结果 → 下载增强后的图片
 
 ### API 参数
 ```python
+with open(local_image_path, "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
 form = {
     "req_key": "jimeng_high_aes_general_v21_L",
-    "image_urls": ["https://原图URL"]
+    "image_base64": [image_base64]
 }
 resp = vs.cv_sync2async_submit_task(form)
 
@@ -212,22 +251,28 @@ resp = vs.cv_sync2async_get_result(form)
 
 ### 流程（两步调用）
 
-**步骤1：主体识别**
+**步骤1：主体识别（base64 方式）**
 ```python
+with open(local_image_path, "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
 form = {
     "req_key": "jimeng_realman_avatar_picture_create_role_omni",
-    "image_url": "https://人物图片URL"
+    "image_base64": image_base64
 }
 resp = vs.cv_submit_task(form)
 # 查询识别结果，确认 status=1（识别到有效主体）
 ```
 
-**步骤2：视频生成**
+**步骤2：视频生成（base64 方式）**
 ```python
+with open(local_audio_path, "rb") as f:
+    audio_base64 = base64.b64encode(f.read()).decode("utf-8")
+
 form = {
     "req_key": "jimeng_realman_avatar_picture_omni_v2",
-    "image_url": "https://人物图片URL",
-    "audio_url": "https://音频URL"
+    "image_base64": image_base64,
+    "audio_base64": audio_base64
 }
 resp = vs.cv_sync2async_submit_task(form)
 # 查询结果中 video_url 即为生成的数字人视频
@@ -249,16 +294,21 @@ resp = vs.cv_sync2async_submit_task(form)
 "动作模仿"、"动作迁移"、"模仿动作"、"跟着动"
 
 ### 流程
-1. 获取用户上传的人物图片 URL
-2. 获取模板视频 URL（用户上传或从预设中选择）
+1. 获取用户在飞书发送的人物图片 → 保存到本地 → base64 编码
+2. 获取用户发送的模板视频 → 保存到本地 → base64 编码
 3. 提交任务 → 轮询结果 → 下载视频
 
-### API 参数
+### API 参数（base64 方式）
 ```python
+with open(local_image_path, "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+with open(local_video_path, "rb") as f:
+    video_base64 = base64.b64encode(f.read()).decode("utf-8")
+
 form = {
     "req_key": "jimeng_motion_imitation_v2",
-    "image_url": "https://人物图片URL",
-    "video_url": "https://模板视频URL"
+    "image_base64": image_base64,
+    "video_base64": video_base64
 }
 resp = vs.cv_sync2async_submit_task(form)
 # 查询结果中 video_url 即为生成的模仿视频
