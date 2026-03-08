@@ -1,10 +1,10 @@
 ---
-description: 使用即梦 AI 文生视频
+description: 使用即梦 AI 4.0 文生图
 argument-hint: [提示词]
 allowed-tools: [Bash, Read, Write, AskUserQuestion]
 ---
 
-# 即梦 AI 文生视频
+# 即梦 AI 文生图 4.0
 
 用户参数: $ARGUMENTS
 
@@ -16,18 +16,13 @@ allowed-tools: [Bash, Read, Write, AskUserQuestion]
 ## 流程
 
 ### 1. 获取提示词
-如果 $ARGUMENTS 中有提示词则使用，否则询问用户。
+如果 $ARGUMENTS 中有提示词则使用，否则询问用户想要生成什么图片。
 
 ### 2. 优化提示词
-补充画面构图、光影色彩、运动描述、镜头语言、风格基调，不超过 400 字。展示给用户确认。
+补充画面细节（构图、光影、色彩、质感、风格），不超过 300 字。展示给用户确认。
 
-### 3. 选择参数
-使用 AskUserQuestion 询问：
-- 分辨率：720p / 1080p
-- 时长：5 秒 / 10 秒
-- 比例：16:9 / 9:16 / 1:1 / 4:3 / 3:4 / 21:9
+### 3. 提交任务
 
-### 4. 提交任务
 ```bash
 python3 << 'PYEOF'
 import json, os
@@ -40,18 +35,16 @@ vs.set_ak(config["access_key"])
 vs.set_sk(config["secret_key"])
 
 form = {
-    "req_key": "REQ_KEY",       # jimeng_t2v_v30 或 jimeng_t2v_v30_1080p
+    "req_key": "jimeng_t2i_v40",
     "prompt": "PROMPT",
-    "seed": -1,
-    "frames": FRAMES,            # 121 或 241
-    "aspect_ratio": "RATIO"
+    "seed": -1
 }
 resp = vs.cv_sync2async_submit_task(form)
 print(json.dumps(resp, ensure_ascii=False, indent=2))
 PYEOF
 ```
 
-### 5. 轮询结果（每 5 秒，最多 5 分钟）
+### 4. 轮询结果（每 3 秒，最多 3 分钟）
 ```bash
 python3 << 'PYEOF'
 import json, os, time
@@ -64,22 +57,22 @@ vs.set_ak(config["access_key"])
 vs.set_sk(config["secret_key"])
 
 for i in range(60):
-    resp = vs.cv_sync2async_get_result({"req_key": "REQ_KEY", "task_id": "TASK_ID"})
+    resp = vs.cv_sync2async_get_result({"req_key": "jimeng_t2i_v40", "task_id": "TASK_ID"})
     data = resp.get("data", {})
-    if data.get("status") == "done" or data.get("resp_data"):
+    if data.get("status") == "done" or data.get("image_urls"):
         print(json.dumps(resp, ensure_ascii=False, indent=2))
         break
     if "fail" in str(data.get("status", "")).lower():
         print(json.dumps(resp, ensure_ascii=False, indent=2))
         break
-    time.sleep(5)
+    time.sleep(3)
 else:
     print(json.dumps({"error": "超时", "task_id": "TASK_ID"}))
 PYEOF
 ```
 
-### 6. 下载视频
-从结果中提取 video_url，下载到 `~/jimeng-videos/jimeng_YYYYMMDD_HHMMSS.mp4`。
+### 5. 下载图片
+从结果的 `image_urls` 中下载所有图片到 `~/jimeng-images/jimeng_YYYYMMDD_HHMMSS_N.png`。
 
-### 7. 报告结果
+### 6. 报告结果
 告知用户：文件路径、文件大小、使用的提示词。

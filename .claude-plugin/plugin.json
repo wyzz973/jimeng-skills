@@ -1,6 +1,6 @@
 {
-  "name": "jimeng-video",
-  "description": "即梦 AI 文生视频插件 - 通过火山引擎即梦 AI API 生成视频，支持提示词优化、多分辨率、多时长选择",
+  "name": "jimeng-ai",
+  "description": "即梦 AI 多模态生成插件 - 支持文生图、文生视频、图生视频、图片编辑、智能超清、数字人、动作模仿",
   "author": {
     "name": "sd3"
   }

@@ -1,14 +1,21 @@
-# 即梦 AI 文生视频 - Claude Code 插件
+# 即梦 AI 多模态生成 - Claude Code 插件
 
-通过火山引擎即梦 AI API，在 Claude Code 中直接生成视频。支持 AI 提示词优化、多分辨率、多时长选择。
+通过火山引擎即梦 AI API，在 Claude Code 中直接生成图片和视频。支持 AI 提示词优化，覆盖即梦全线模型。
 
-## 功能
+## 支持的功能
 
-- **AI 提示词优化** - 大模型自动优化你的视频描述，补充画面细节、运动、光影、风格等
-- **多分辨率** - 支持 720p / 1080p
-- **多时长** - 5 秒 / 10 秒
-- **多比例** - 16:9、9:16、1:1、4:3、3:4、21:9
-- **自动触发** - 说"帮我生成视频"即可，无需记忆命令
+| 功能 | 命令 | 说明 |
+|------|------|------|
+| 文生图 4.0 | `/jimeng-image` | 文字描述生成高质量图片 |
+| 文生视频 3.0 Pro | `/jimeng-video` | 文字描述生成视频，720p/1080p |
+| 图生视频 3.0 Pro | `/jimeng-i2v` | 图片转视频，支持运镜 |
+| 交互编辑 Inpainting | `/jimeng-inpaint` | 局部编辑修改图片 |
+| 智能超清 | `/jimeng-upscale` | 图片放大增强 |
+| 数字人快速模式 | `/jimeng-digital-human` | 图片+音频生成口播视频 |
+| 动作模仿 2.0 | `/jimeng-motion` | 图片+视频动作迁移 |
+| 配置密钥 | `/jimeng-setup` | 配置火山引擎 AK/SK |
+
+所有功能也支持自然语言触发（如"帮我生成一张图片"、"把这张图做成视频"）。
 
 ## 安装
 
@@ -20,41 +27,63 @@ claude plugin add https://github.com/wyzz973/jimeng-skills.git
 
 ### 1. 配置密钥
 
-首次使用前，运行：
-
 ```
 /jimeng-setup
 ```
 
-按提示输入火山引擎的 Access Key 和 Secret Key。
-
 > 获取密钥：[火山引擎控制台](https://console.volcengine.com) → 右上角账户 → API 访问密钥
+> 开通服务：[智能视觉控制台](https://console.volcengine.com/ai/overview) 开通所需的即梦 AI 服务
 
-### 2. 生成视频
-
-**方式一：命令调用**
-
-```
-/jimeng-video 一只猫在月光下散步
-```
-
-**方式二：自然语言（自动触发）**
+### 2. 文生图
 
 ```
-帮我生成一个视频：千军万马奔腾而来
+/jimeng-image 一只猫坐在窗台上看夕阳
 ```
 
-### 3. 生成流程
+### 3. 文生视频
 
-1. 输入视频描述
-2. AI 优化提示词 → 确认或修改
-3. 选择分辨率、时长、画面比例
-4. 等待生成（约 1-3 分钟）
-5. 视频自动下载到 `~/jimeng-videos/`
+```
+/jimeng-video 千军万马奔腾而来
+```
+
+### 4. 图生视频
+
+```
+/jimeng-i2v https://example.com/photo.jpg 让画面动起来
+```
+
+### 5. 图片编辑
+
+```
+/jimeng-inpaint https://example.com/photo.jpg 把背景换成海边
+```
+
+### 6. 智能超清
+
+```
+/jimeng-upscale https://example.com/low-res.jpg
+```
+
+### 7. 数字人
+
+```
+/jimeng-digital-human https://example.com/person.jpg https://example.com/audio.mp3
+```
+
+### 8. 动作模仿
+
+```
+/jimeng-motion https://example.com/person.jpg https://example.com/dance.mp4
+```
+
+## 输出目录
+
+- 图片保存到：`~/jimeng-images/`
+- 视频保存到：`~/jimeng-videos/`
 
 ## 前置条件
 
-- 火山引擎账号，并开通[即梦 AI 视频生成服务](https://console.volcengine.com/ai/overview)
+- 火山引擎账号，并开通对应的[即梦 AI 服务](https://console.volcengine.com/ai/overview)
 - Python 3.x
 - `volcengine` SDK（插件会自动安装）
 
@@ -63,24 +92,36 @@ claude plugin add https://github.com/wyzz973/jimeng-skills.git
 ```
 jimeng-skills/
 ├── .claude-plugin/
-│   └── plugin.json            # 插件元数据
+│   └── plugin.json
 ├── commands/
-│   ├── jimeng-setup.md        # /jimeng-setup 配置命令
-│   └── jimeng-video.md        # /jimeng-video 生成命令
+│   ├── jimeng-setup.md           # 配置密钥
+│   ├── jimeng-image.md           # 文生图 4.0
+│   ├── jimeng-video.md           # 文生视频 3.0 Pro
+│   ├── jimeng-i2v.md             # 图生视频
+│   ├── jimeng-inpaint.md         # 交互编辑
+│   ├── jimeng-upscale.md         # 智能超清
+│   ├── jimeng-digital-human.md   # 数字人
+│   └── jimeng-motion.md          # 动作模仿 2.0
 └── skills/
     └── jimeng-video/
-        └── SKILL.md           # 自动触发 skill
+        └── SKILL.md              # 自动触发 skill
 ```
 
 ## API 参考
 
-| 参数 | 可选值 |
-|------|--------|
-| req_key (720p) | `jimeng_t2v_v30` |
-| req_key (1080p) | `jimeng_t2v_v30_1080p` |
-| frames (5秒) | `121` |
-| frames (10秒) | `241` |
-| aspect_ratio | `16:9` `4:3` `1:1` `3:4` `9:16` `21:9` |
+| 功能 | req_key |
+|------|---------|
+| 文生图 4.0 | `jimeng_t2i_v40` |
+| 文生视频 720p | `jimeng_t2v_v30` |
+| 文生视频 1080p | `jimeng_t2v_v30_1080p` |
+| 图生视频首帧 720p | `jimeng_i2v_first_v30` |
+| 图生视频首帧 1080p | `jimeng_i2v_first_v30_1080` |
+| 图生视频运镜 720p | `jimeng_i2v_recamera_v30` |
+| 交互编辑 Inpainting | `jimeng_image2image_dream_inpaint` |
+| 智能超清 | `jimeng_high_aes_general_v21_L` |
+| 数字人主体识别 | `jimeng_realman_avatar_picture_create_role_omni` |
+| 数字人视频生成 | `jimeng_realman_avatar_picture_omni_v2` |
+| 动作模仿 2.0 | `jimeng_motion_imitation_v2` |
 
 ## License
 
